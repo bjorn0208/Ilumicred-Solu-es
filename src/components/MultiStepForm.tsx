@@ -7,6 +7,8 @@ import Magnetic from './Magnetic';
 import confetti from 'canvas-confetti';
 import { playSuccessSound } from '../utils/sound';
 
+import { supabase } from '../lib/supabase';
+
 export default function MultiStepForm() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -68,6 +70,26 @@ export default function MultiStepForm() {
     setIsSubmitting(true);
 
     try {
+      // 1. Enviar para o Supabase (se configurado)
+      if (supabase) {
+        const { error: supabaseError } = await supabase
+          .from('leads')
+          .insert([
+            {
+              nome: formData.name,
+              telefone: formData.phone,
+              negativado: formData.negativado,
+              valor_dividas: formData.valorDividas,
+              objetivo: formData.objetivo,
+            }
+          ]);
+          
+        if (supabaseError) {
+          console.error('Erro ao salvar no Supabase:', supabaseError);
+        }
+      }
+
+      // 2. Enviar email via FormSubmit
       await fetch('https://formsubmit.co/ajax/marcospereira0208@gmail.com', {
         method: 'POST',
         headers: {
@@ -85,7 +107,7 @@ export default function MultiStepForm() {
         })
       });
     } catch (error) {
-      console.error('Erro ao enviar email:', error);
+      console.error('Erro ao processar formulário:', error);
     }
 
     setIsSubmitting(false);
