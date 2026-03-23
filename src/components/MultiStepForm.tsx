@@ -113,7 +113,22 @@ export default function MultiStepForm() {
     setIsSubmitting(false);
 
     const whatsappNumber = '5511961709847';
-    const message = `Olá! Meu nome é ${formData.name}, meu WhatsApp é ${formData.phone}. Estou negativado? ${formData.negativado}. Valor das dívidas: ${formData.valorDividas}. Meu objetivo: ${formData.objetivo}. Gostaria de limpar meu nome.`;
+    const message = `*Formulário de Atendimento*
+
+*Nome:*
+${formData.name}
+
+*WhatsApp:*
+${formData.phone}
+
+*Você está com o nome negativado atualmente?*
+${formData.negativado}
+
+*Você sabe o valor total das suas dívidas?*
+${formData.valorDividas}
+
+*Qual seu principal objetivo ao resolver seu nome?*
+${formData.objetivo}`;
     window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
 
     playSuccessSound();
