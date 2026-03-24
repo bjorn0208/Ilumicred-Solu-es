@@ -50,7 +50,8 @@ export default function Navbar() {
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed top-0 right-0 w-72 h-full bg-black/40 backdrop-blur-2xl border-l border-white/10 shadow-2xl z-50 p-6 flex flex-col"
             >
-              <div className="flex justify-end mb-8">
+              <div className="flex justify-between items-center mb-8">
+                <img src="/logo.png" alt="Ilumicred Logo" className="h-10 w-auto" />
                 <Magnetic strength={0.3}>
                   <button onClick={() => setIsSidebarOpen(false)} className="text-white hover:text-blue-500 transition-transform hover:rotate-90 p-2">
                     <X className="w-8 h-8" />

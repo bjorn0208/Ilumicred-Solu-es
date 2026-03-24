@@ -212,9 +212,9 @@ export default function Chatbot() {
               setShowNotification(false);
               setHasNotified(true);
             }}
-            className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform"
+            className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform overflow-hidden p-3"
           >
-            <MessageCircle className="w-6 h-6" />
+            <img src="/logo.png" alt="Bot" className="w-full h-full object-contain" />
             {showNotification && (
               <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-pulse"></span>
             )}
@@ -235,8 +235,8 @@ export default function Chatbot() {
             {/* Header */}
             <div className="p-4 bg-white/10 border-b border-white/10 flex items-center justify-between relative">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                  <Bot className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden p-2">
+                  <img src="/logo.png" alt="Dominic" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <h3 className="font-bold text-white">Dominic</h3>
