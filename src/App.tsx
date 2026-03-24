@@ -13,6 +13,7 @@ import Chatbot from './components/Chatbot';
 import AuroraBackground from './components/AuroraBackground';
 import ScrollRevealOverlay from './components/ScrollRevealOverlay';
 import CustomCursor from './components/CustomCursor';
+import logo from './logo.png';
 
 export default function App() {
   return (
@@ -37,7 +38,6 @@ export default function App() {
         
         <footer className="bg-black/50 backdrop-blur-md text-white py-12 text-center text-sm border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 flex flex-col items-center">
-            <img src="/logo.png" alt="Ilumicred Logo" className="h-12 w-auto mb-6 opacity-80 hover:opacity-100 transition-opacity" />
             <p className="mb-4">© 2022 Ilumicred Soluções. Todos os direitos reservados.</p>
             <p className="text-xs text-white/50 max-w-2xl mx-auto">
               A Ilumicred Soluções não é uma instituição financeira e não realiza operações de crédito. Atuamos exclusivamente como consultoria administrativa e jurídica abordando na defesa do consumidor.

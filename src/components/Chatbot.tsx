@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
 import { playAppleSendSound, playLockSound } from '../utils/sound';
 import Magnetic from './Magnetic';
+import logo from '../logo.png';
 
 interface Message {
   id: string;
@@ -214,7 +215,7 @@ export default function Chatbot() {
             }}
             className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform overflow-hidden p-3"
           >
-            <img src="/logo.png" alt="Bot" className="w-full h-full object-contain" />
+            <img src={logo} alt="Bot" className="w-full h-full object-contain" />
             {showNotification && (
               <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-pulse"></span>
             )}
@@ -236,7 +237,7 @@ export default function Chatbot() {
             <div className="p-4 bg-white/10 border-b border-white/10 flex items-center justify-between relative">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden p-2">
-                  <img src="/logo.png" alt="Dominic" className="w-full h-full object-contain" />
+                  <img src={logo} alt="Dominic" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <h3 className="font-bold text-white">Dominic</h3>
