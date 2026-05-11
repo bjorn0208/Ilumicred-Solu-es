@@ -1,87 +1,34 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Bot, Loader2, Cpu } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import Anthropic from '@anthropic-ai/sdk';
-import { playAppleSendSound, playLockSound } from '../utils/sound';
+import { X, Loader2 } from 'lucide-react';
 import Magnetic from './Magnetic';
 import logo from '../logo.png';
 
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'bot';
-}
+const ALL_QUESTIONS = [
+  "Como funciona a limpeza de nome?",
+  "Quanto tempo demora?",
+  "É garantido?",
+  "Quais dívidas vocês limpam?",
+  "Quero falar com um atendente"
+];
 
-const SYSTEM_PROMPT = `
-## IDENTIDADE E PERSONA
-Nome: Dominic
-Cargo: Assistente Virtual da Ilumicred Soluções
-Especialidade: Limpeza de nome e consultoria financeira
-
-## OBJETIVOS PRINCIPAIS
-1. Explicar o serviço de forma simples, clara e direta
-2. Gerar confiança no usuário
-3. Quebrar objeções de venda
-4. Levar o cliente a tomar a decisão de preencher o formulário
-
-## REGRAS DE COMPORTAMENTO OBRIGATÓRIAS
-Tom de Voz: Sempre responda de forma curta, clara e objetiva
-Linguagem: Nunca use linguagem difícil ou jurídica complexa
-Atitude: Seja educado, direto e profissional
-Limite de Texto: Evite textos longos a todo custo
-Encerramento: NUNCA encerre a conversa por conta própria; o bot só para se o cliente sair da página ou fechar o chat
-
-## LÓGICA DE FLUXO DA CONVERSA
-1. Responde a pergunta do cliente
-2. Aguarda a próxima pergunta
-3. Repete o ciclo infinitamente
-
-## BASE LEGAL E CONHECIMENTO TÉCNICO
-Fundamento: O serviço é baseado estritamente no Código de Defesa do Consumidor (CDC)
-Argumento Principal: Focamos nas falhas das empresas credoras, especificamente a falta de notificação prévia via Aviso de Recebimento (AR) antes de negativar o nome
-Tese Jurídica: Se não houve notificação correta (AR), a negativação é considerada ilegal perante o CDC e deve ser removida
-
-## SCRIPTS DE QUEBRA DE OBJEÇÕES
-Para "É golpe?":
-"Entendo sua preocupação. Trabalhamos 100% dentro da lei, usando o Código de Defesa do Consumidor. Temos milhares de clientes satisfeitos e oferecemos garantia em contrato."
-
-Para "A dívida some?":
-"Não. A dívida com o credor continua, mas ela sai do Serasa/SPC. Assim, você volta a ter crédito no mercado."
-
-Para "Quanto tempo demora?":
-"Em média, de 15 a 45 dias úteis para a remoção completa dos apontamentos."
-
-Para "Tem garantia?":
-"Sim! Oferecemos garantia de 6 meses. Se o nome sujar de novo pelas mesmas dívidas, refazemos o serviço sem custo."
-
-## SCRIPT DE CONVERSÃO
-Quando o cliente mostra interesse em fechar ou pergunta o preço:
-"Ótimo! Para analisar seu caso e passar os valores exatos, preciso que você preencha o formulário rápido aqui na página. Nossa equipe vai te chamar no WhatsApp em seguida."
-
-## MENSAGENS PADRÃO DE INTERFACE
-Mensagem Inicial: "Posso ajudar em algo? Posso responder todas as suas dúvidas."
-Campo de Input: "Digite sua mensagem..."
-Confirmação de Fechamento: "Deseja mesmo fechar? Todo o histórico será apagado."
-Erro de Processamento: "Desculpe, não consegui processar sua mensagem."
-Erro de API/Instabilidade: "Desculpe, estou com instabilidade no momento. Por favor, preencha o formulário na página para que nossa equipe entre em contato via WhatsApp."
-`;
+const ANSWERS: Record<string, string> = {
+  "Como funciona a limpeza de nome?": "Nós entramos com uma ação judicial baseada no Código de Defesa do Consumidor para remover os apontamentos do seu CPF nos órgãos de proteção ao crédito (Serasa, SPC, Boa Vista).",
+  "Quanto tempo demora?": "Processo Jurídico não tem data prevista. O que podemos dizer é que geralmente dura em torno de 15 a 45 úteis.",
+  "É garantido?": "Sim! Trabalhamos com garantia em contrato. Você tem 6 meses de garantia caso o nome volte neste intermédio e você estiver pagando certinho suas parcelas conosco.",
+  "Quais dívidas vocês limpam?": "Nós não quitamos a sua dívida! Nós removemos seus apontamentos dos ógãos de proteção ao crédito não governamentais.",
+  "Quero falar com um atendente": "Ótimo! Vou te transferir para o nosso WhatsApp agora mesmo."
+};
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Posso ajudar em algo? Posso responder todas as suas dúvidas.',
-      sender: 'bot',
-    },
+  const [showNotification, setShowNotification] = useState(true);
+  const [messages, setMessages] = useState([
+    { id: '1', text: 'Olá! Sou o Dominic, assistente virtual da Ilumicred. Como posso ajudar com a recuperação do seu crédito hoje?', sender: 'bot' }
   ]);
-  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isVibrating, setIsVibrating] = useState(false);
-  const [hasNotified, setHasNotified] = useState(false);
-  const [showNotification, setShowNotification] = useState(false);
-  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [availableQuestions, setAvailableQuestions] = useState(ALL_QUESTIONS);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -89,290 +36,114 @@ export default function Chatbot() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (hasNotified) return;
-      
-      const scrollPosition = window.innerHeight + window.scrollY;
-      const documentHeight = document.documentElement.scrollHeight;
-      
-      if (scrollPosition >= documentHeight - 150) {
-        setHasNotified(true);
-        setIsVibrating(true);
-        setShowNotification(true);
-        
-        try {
-          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const oscillator = audioCtx.createOscillator();
-          const gainNode = audioCtx.createGain();
-          
-          oscillator.type = 'sine';
-          oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-          
-          gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
-          
-          oscillator.connect(gainNode);
-          gainNode.connect(audioCtx.destination);
-          
-          oscillator.start();
-          oscillator.stop(audioCtx.currentTime + 1);
-        } catch (e) {
-          console.error("Audio context failed", e);
-        }
-        
-        setTimeout(() => {
-          setIsVibrating(false);
-        }, 3000);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [hasNotified]);
-
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    playAppleSendSound();
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: input,
-      sender: 'user',
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+  const handleSend = (question: string) => {
+    // Add user message
+    const userMsg = { id: Date.now().toString(), text: question, sender: 'user' };
+    setMessages(prev => [...prev, userMsg]);
+    
+    // Remove question from available
+    setAvailableQuestions(prev => prev.filter(q => q !== question));
+    
     setIsLoading(true);
 
-    try {
-      const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-      if (!apiKey) {
-        throw new Error('Claude API Key não configurada');
-      }
-
-      const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-      
-      const messagesForAPI = messages.map(msg => ({
-        role: msg.sender === 'bot' ? 'assistant' : 'user',
-        content: msg.text,
-      }));
-      
-      messagesForAPI.push({
-        role: 'user',
-        content: userMessage.text,
-      });
-
-      const response = await client.messages.create({
-        model: 'claude-opus-4-1',
-        max_tokens: 512,
-        system: SYSTEM_PROMPT,
-        messages: messagesForAPI as Anthropic.MessageParam[],
-      });
-
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: response.content[0].type === 'text' ? response.content[0].text : 'Desculpe, não consegui processar sua mensagem.',
-        sender: 'bot',
-      };
-
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (error: any) {
-      console.error('Erro ao chamar Claude API:', error);
-      console.error('Erro completo:', error?.response?.data || error?.message || error);
-      
-      let errorText = 'Desculpe, não consegui processar sua mensagem.';
-      
-      if (error?.status === 404) {
-        errorText = 'Modelo de IA não encontrado. Verifique a configuração da API.';
-      } else if (error?.message?.includes('not_found')) {
-        errorText = 'Modelo claudeNão disponível. Tente novamente mais tarde.';
-      }
-      
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: errorText,
-        sender: 'bot',
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
+    setTimeout(() => {
+      const botMsg = { id: (Date.now() + 1).toString(), text: ANSWERS[question], sender: 'bot' };
+      setMessages(prev => [...prev, botMsg]);
       setIsLoading(false);
-    }
-  };
 
-  const handleCloseClick = () => {
-    setShowCloseConfirm(true);
-  };
-
-  const confirmClose = () => {
-    playLockSound();
-    setIsOpen(false);
-    setShowCloseConfirm(false);
-    setMessages([
-      {
-        id: '1',
-        text: 'Posso ajudar em algo? Posso responder todas as suas dúvidas.',
-        sender: 'bot',
-      },
-    ]);
-  };
-
-  const cancelClose = () => {
-    setShowCloseConfirm(false);
+      if (question === "Quero falar com um atendente") {
+        setTimeout(() => {
+          window.open("https://wa.me/5511961709847?text=Olá, vim pelo site e gostaria de falar com um atendente sobre a limpeza do meu nome.", "_blank");
+        }, 1500);
+      }
+    }, 1000);
   };
 
   return (
     <>
-      {/* Chat Button */}
       <div className={`fixed bottom-6 right-6 z-50 ${isOpen ? 'hidden' : 'block'}`}>
         <Magnetic strength={0.4}>
           <motion.button
             initial={{ scale: 0 }}
-            animate={{ 
-              scale: 1,
-              x: isVibrating ? [-5, 5, -5, 5, -5, 5, -5, 5, -5, 5, -5, 5, 0] : 0,
-            }}
-            transition={{ x: { duration: 0.5, repeat: 5 } }}
-            whileHover={{ scale: 1.15 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => {
               setIsOpen(true);
               setShowNotification(false);
-              setHasNotified(true);
             }}
-            className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center transition-all overflow-hidden p-3 border-2 border-blue-400/50"
+            className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform overflow-hidden p-2"
           >
-            <Cpu className="w-8 h-8" />
+            <img src={logo} alt="Bot" className="w-full h-full object-contain" />
             {showNotification && (
-              <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full border-3 border-white animate-pulse shadow-lg"></span>
+              <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-pulse"></span>
             )}
           </motion.button>
         </Magnetic>
       </div>
 
-      {/* Chat Window */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.3, type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed bottom-6 right-6 w-[380px] h-[550px] bg-gradient-to-b from-slate-900 via-black to-black backdrop-blur-xl border border-blue-500/30 rounded-3xl shadow-2xl flex flex-col z-50 overflow-hidden"
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-6 right-6 w-[350px] h-[500px] bg-[#0B1120] border border-white/10 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden"
           >
-            {/* Header */}
-            <div className="p-4 bg-white/10 backdrop-blur-md border-b border-white/10 flex items-center justify-between relative">
+            <div className="bg-blue-600 p-4 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <img src={logo} alt="Dominic" className="w-10 h-10 object-contain" />
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center p-1 overflow-hidden">
+                  <img src={logo} alt="Dominic" className="w-full h-full object-contain" />
+                </div>
                 <div>
-                  <h3 className="font-bold text-white text-lg">Dominic</h3>
-                  <p className="text-xs text-blue-300">Assistente Virtual</p>
+                  <h3 className="font-bold text-white">Dominic</h3>
+                  <p className="text-blue-200 text-xs flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-400 rounded-full inline-block animate-pulse"></span>
+                    Online
+                  </p>
                 </div>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleCloseClick}
-                className="text-white/70 hover:text-white transition-colors p-1"
-              >
+              <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
-              </motion.button>
+              </button>
             </div>
 
-            {/* Close Confirmation Overlay */}
-            <AnimatePresence>
-              {showCloseConfirm && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute inset-0 bg-black/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center rounded-3xl"
-                >
-                  <p className="text-white font-semibold mb-6 text-base">Deseja mesmo fechar? Todo o histórico será apagado.</p>
-                  <div className="flex gap-3 w-full">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={cancelClose}
-                      className="flex-1 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all"
-                    >
-                      Voltar
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={confirmClose}
-                      className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 transition-all shadow-lg"
-                    >
-                      Sim
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-transparent scrollbar-hide">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#0B1120]">
               {messages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className={`flex ${
-                    msg.sender === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  <div
-                    className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                      msg.sender === 'user'
-                        ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm shadow-lg'
-                        : 'bg-white/10 backdrop-blur-sm border border-blue-500/30 text-white rounded-tl-sm hover:bg-white/15 transition-colors'
-                    }`}
-                  >
-                    <p>{msg.text}</p>
+                <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] p-3 rounded-2xl ${msg.sender === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-[#1E293B] text-slate-200 rounded-tl-sm'}`}>
+                    <p className="text-sm leading-relaxed">{msg.text}</p>
                   </div>
-                </motion.div>
+                </div>
               ))}
               {isLoading && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-start"
-                >
-                  <div className="bg-white/10 backdrop-blur-sm border border-blue-500/30 p-3 rounded-2xl rounded-tl-sm">
+                <div className="flex justify-start">
+                  <div className="bg-[#1E293B] p-3 rounded-2xl rounded-tl-sm">
                     <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
                   </div>
-                </motion.div>
+                </div>
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
-            <div className="p-4 bg-gradient-to-t from-black via-black/80 to-transparent border-t border-blue-500/20">
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Digite sua mensagem..."
-                  className="flex-1 bg-white/10 backdrop-blur-sm text-white placeholder-white/40 border border-blue-500/30 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-blue-400 focus:bg-white/15 transition-all duration-200"
-                />
-                <Magnetic strength={0.2}>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleSend}
-                    disabled={!input.trim() || isLoading}
-                    className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 shadow-lg border border-blue-400/50"
+            <div className="p-4 bg-[#0B1120] border-t border-white/5 shrink-0">
+              <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto custom-scrollbar pr-1">
+                {availableQuestions.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => handleSend(q)}
+                    disabled={isLoading}
+                    className="w-full text-left bg-[#1E293B] hover:bg-blue-600 text-slate-200 hover:text-white text-sm py-3 px-4 rounded-xl border border-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Send className="w-4 h-4" />
-                  </motion.button>
-                </Magnetic>
+                    {q}
+                  </button>
+                ))}
+                {availableQuestions.length === 0 && (
+                  <p className="text-xs text-slate-500 text-center py-2">Nenhuma outra pergunta disponível.</p>
+                )}
               </div>
             </div>
           </motion.div>

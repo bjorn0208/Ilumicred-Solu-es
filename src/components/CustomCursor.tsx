@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowUpLeft } from 'lucide-react';
 
 export default function CustomCursor() {
   const [mousePosition, setMousePosition] = useState({ x: -100, y: -100 });
-  const [isHovering, setIsHovering] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -13,32 +11,15 @@ export default function CustomCursor() {
       if (!isVisible) setIsVisible(true);
     };
 
-    const handleMouseOver = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.closest('button') ||
-        target.closest('a') ||
-        target.closest('input') ||
-        target.closest('textarea') ||
-        target.closest('[role="button"]')
-      ) {
-        setIsHovering(true);
-      } else {
-        setIsHovering(false);
-      }
-    };
-
     const handleMouseLeave = () => {
       setIsVisible(false);
     };
 
     window.addEventListener('mousemove', updateMousePosition);
-    window.addEventListener('mouseover', handleMouseOver);
     document.body.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
       window.removeEventListener('mousemove', updateMousePosition);
-      window.removeEventListener('mouseover', handleMouseOver);
       document.body.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, [isVisible]);
@@ -46,20 +27,17 @@ export default function CustomCursor() {
   if (!isVisible) return null;
 
   return (
-    <>
-      <motion.div
-        className="fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-screen flex items-center justify-center"
-        animate={{
-          x: mousePosition.x - 10,
-          y: mousePosition.y - 10,
-          scale: isHovering ? 1.2 : 1,
-        }}
-        transition={{ type: 'spring', stiffness: 1000, damping: 28, mass: 0.1 }}
-        role="presentation"
-        aria-hidden="true"
-      >
-        <ArrowUpLeft className="w-6 h-6 text-blue-500" />
-      </motion.div>
-    </>
+    <motion.div
+      className="fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-screen"
+      animate={{
+        x: mousePosition.x,
+        y: mousePosition.y,
+      }}
+      transition={{ type: 'spring', stiffness: 1000, damping: 28, mass: 0.1 }}
+    >
+      <svg width="24" height="36" viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'translate(-2px, -2px)' }}>
+        <path d="M2 2 L2 28 L8 22 L13 33 L17 31 L12 20 L21 20 Z" fill="#3B82F6" stroke="white" strokeWidth="1.5" strokeLinejoin="round"/>
+      </svg>
+    </motion.div>
   );
 }

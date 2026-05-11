@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import logo from '../logo.png';
+
+const LOGO_URL = "/logo.png";
 
 export default function ScrollRevealOverlay() {
   const [virtualScroll, setVirtualScroll] = useState(0);
@@ -108,7 +109,7 @@ export default function ScrollRevealOverlay() {
         
         {/* Logo - Metade da tela (50vw / 50vh) */}
         <img 
-          src={logo}
+          src={LOGO_URL}
           alt="Logo"
           className="w-[50vw] h-[50vh] object-contain relative z-10"
           style={{
