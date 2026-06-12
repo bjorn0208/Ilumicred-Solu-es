@@ -1,6 +1,6 @@
 import React, { useState, ChangeEvent, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, ChevronLeft, CheckCircle2, User, Target, AlertCircle, HelpCircle, DollarSign, MessageCircle, Briefcase } from 'lucide-react';
+import { ChevronRight, ChevronLeft, CheckCircle2, User, Target, AlertCircle, HelpCircle, DollarSign, MessageCircle, Briefcase, FileText, Phone } from 'lucide-react';
 import RevealTitle from './RevealTitle';
 import DynamicButton from './DynamicButton';
 import Magnetic from './Magnetic';
@@ -12,6 +12,8 @@ export default function MultiStepForm() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
+    cpf: '',
+    telefone: '',
     sonho: '',
     servico: '',
     negativado: '',
@@ -20,10 +22,46 @@ export default function MultiStepForm() {
   });
   const [errors, setErrors] = useState({
     name: '',
+    cpf: '',
+    telefone: ''
   });
 
   const validateName = (name: string) => {
     if (name.trim().length < 3) return 'O nome deve ter pelo menos 3 caracteres.';
+    return '';
+  };
+
+  const validateCPF = (cpf: string) => {
+    const cleanCPF = cpf.replace(/\D/g, '');
+    if (cleanCPF.length !== 11) return 'O CPF deve conter exatamente 11 dígitos.';
+    if (/^(\d)\1+$/.test(cleanCPF)) return 'CPF inválido (números repetidos).';
+    
+    let sum = 0;
+    let remainder;
+    
+    for (let i = 1; i <= 9; i++) {
+      sum += parseInt(cleanCPF.substring(i - 1, i)) * (11 - i);
+    }
+    remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== parseInt(cleanCPF.substring(9, 10))) return 'CPF inválido.';
+    
+    sum = 0;
+    for (let i = 1; i <= 10; i++) {
+      sum += parseInt(cleanCPF.substring(i - 1, i)) * (12 - i);
+    }
+    remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== parseInt(cleanCPF.substring(10, 11))) return 'CPF invalid.';
+    
+    return '';
+  };
+
+  const validatePhone = (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 11) {
+      return 'Telefone inválido. Deve conter DDD + 8 ou 9 dígitos.';
+    }
     return '';
   };
 
@@ -36,20 +74,83 @@ export default function MultiStepForm() {
     }
   };
 
+  const handleCPFChange = (e: ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
+    
+    let formatted = value;
+    if (value.length > 9) {
+      formatted = `${value.slice(0, 3)}.${value.slice(3, 6)}.${value.slice(6, 9)}-${value.slice(9)}`;
+    } else if (value.length > 6) {
+      formatted = `${value.slice(0, 3)}.${value.slice(3, 6)}.${value.slice(6)}`;
+    } else if (value.length > 3) {
+      formatted = `${value.slice(0, 3)}.${value.slice(3)}`;
+    }
+    
+    setFormData((prev) => ({ ...prev, cpf: formatted }));
+    
+    if (value.length === 11) {
+      const errorMsg = validateCPF(value);
+      setErrors((prev) => ({ ...prev, cpf: errorMsg }));
+    } else {
+      setErrors((prev) => ({ ...prev, cpf: '' }));
+    }
+  };
+
+  const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
+    
+    let formatted = value;
+    if (value.length > 10) {
+      formatted = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
+    } else if (value.length > 6) {
+      formatted = `(${value.slice(0, 2)}) ${value.slice(2, 6)}-${value.slice(6)}`;
+    } else if (value.length > 2) {
+      formatted = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+    } else if (value.length > 0) {
+      formatted = `(${value.slice(0)}`;
+    }
+    
+    setFormData((prev) => ({ ...prev, telefone: formatted }));
+    
+    if (value.length >= 10) {
+      const errorMsg = validatePhone(value);
+      setErrors((prev) => ({ ...prev, telefone: errorMsg }));
+    } else {
+      setErrors((prev) => ({ ...prev, telefone: '' }));
+    }
+  };
+
   const handleOptionSelect = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const nextStep = () => {
     let currentError = '';
-    if (step === 1) currentError = validateName(formData.name);
-    
-    if (currentError) {
-      setErrors((prev) => ({ ...prev, name: currentError }));
-      return;
+    if (step === 1) {
+      currentError = validateName(formData.name);
+      if (currentError) {
+        setErrors((prev) => ({ ...prev, name: currentError }));
+        return;
+      }
+    } else if (step === 2) {
+      const cleanCPF = formData.cpf.replace(/\D/g, '');
+      currentError = validateCPF(cleanCPF);
+      if (currentError) {
+        setErrors((prev) => ({ ...prev, cpf: currentError }));
+        return;
+      }
+    } else if (step === 3) {
+      const cleanPhone = formData.telefone.replace(/\D/g, '');
+      currentError = validatePhone(cleanPhone);
+      if (currentError) {
+        setErrors((prev) => ({ ...prev, telefone: currentError }));
+        return;
+      }
     }
 
-    if (step < 7) setStep(step + 1);
+    if (step < 9) setStep(step + 1);
   };
 
   const prevStep = () => {
@@ -57,7 +158,7 @@ export default function MultiStepForm() {
   };
 
   const handleFinalSubmit = () => {
-    setStep(7);
+    setStep(9);
 
     playSuccessSound();
     confetti({
@@ -73,6 +174,8 @@ export default function MultiStepForm() {
     const message = `*Novo Contato via Site*
 
 *Nome:* ${formData.name}
+*CPF:* ${formData.cpf}
+*Telefone:* ${formData.telefone}
 *Sonho:* ${formData.sonho}
 *Serviço:* ${formData.servico}
 *Negativado:* ${formData.negativado}
@@ -84,11 +187,19 @@ export default function MultiStepForm() {
 
   const isStepValid = () => {
     if (step === 1) return formData.name.trim().length >= 3;
-    if (step === 2) return formData.sonho !== '';
-    if (step === 3) return formData.servico !== '';
-    if (step === 4) return formData.negativado !== '';
-    if (step === 5) return formData.valorDividas !== '';
-    if (step === 6) return formData.proposta !== '';
+    if (step === 2) {
+      const cleanCPF = formData.cpf.replace(/\D/g, '');
+      return cleanCPF.length === 11 && !errors.cpf;
+    }
+    if (step === 3) {
+      const cleanPhone = formData.telefone.replace(/\D/g, '');
+      return (cleanPhone.length === 10 || cleanPhone.length === 11) && !errors.telefone;
+    }
+    if (step === 4) return formData.sonho !== '';
+    if (step === 5) return formData.servico !== '';
+    if (step === 6) return formData.negativado !== '';
+    if (step === 7) return formData.valorDividas !== '';
+    if (step === 8) return formData.proposta !== '';
     return true;
   };
 
@@ -110,8 +221,8 @@ export default function MultiStepForm() {
           <div className="absolute top-0 left-0 w-full h-2 bg-white/5">
             <motion.div
               className="h-full bg-blue-500"
-              initial={{ width: '15%' }}
-              animate={{ width: `${(step / 6) * 100}%` }}
+              initial={{ width: '12.5%' }}
+              animate={{ width: `${(step / 8) * 100}%` }}
               transition={{ duration: 0.5 }}
             />
           </div>
@@ -178,6 +289,113 @@ export default function MultiStepForm() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                className="space-y-8"
+              >
+                <div className="flex items-start gap-4 text-white">
+                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shrink-0 mt-1">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-blue-400 font-medium mb-2">Muito obrigado, {formData.name.split(' ')[0]}!</p>
+                    <h3 className="text-2xl font-bold">Informe o seu CPF para realizarmos a consulta:</h3>
+                    <p className="text-white/60 text-sm mt-1">Fique tranquilo, seus dados estão protegidos sob sigilo criptografado.</p>
+                  </div>
+                </div>
+                
+                <div className="relative mt-6">
+                  <input
+                    type="text"
+                    name="cpf"
+                    id="cpf"
+                    value={formData.cpf}
+                    onChange={handleCPFChange}
+                    onKeyPress={(e) => e.key === 'Enter' && isStepValid() && nextStep()}
+                    placeholder="000.000.000-00"
+                    className={`peer w-full text-xl p-4 pt-8 pb-2 border-b-2 ${errors.cpf ? 'border-red-500' : 'border-white/20 focus:border-blue-400'} outline-none bg-transparent transition-colors text-white placeholder-transparent`}
+                  />
+                  <label
+                    htmlFor="cpf"
+                    className="absolute left-4 top-2 text-white/40 text-sm transition-all peer-placeholder-shown:text-xl peer-placeholder-shown:top-5 peer-focus:top-2 peer-focus:text-sm peer-focus:text-blue-400 cursor-text"
+                  >
+                    Seu CPF
+                  </label>
+                </div>
+                {errors.cpf && (
+                  <p className="text-red-400 text-sm flex items-center gap-1 mt-2">
+                    <AlertCircle className="w-4 h-4" /> {errors.cpf}
+                  </p>
+                )}
+                
+                <div className="flex flex-col-reverse md:flex-row justify-between gap-4 mt-8">
+                  <button onClick={prevStep} className="text-white/60 hover:text-white flex items-center justify-center gap-2 py-3 px-6 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
+                    <ChevronLeft className="w-5 h-5" /> Voltar
+                  </button>
+                  <DynamicButton onClick={nextStep} disabled={!isStepValid()} className="w-full md:w-auto">
+                    Confirmar <ChevronRight className="w-5 h-5" />
+                  </DynamicButton>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-8"
+              >
+                <div className="flex items-start gap-4 text-white">
+                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shrink-0 mt-1">
+                    <Phone className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold">Qual é o seu melhor Telefone / WhatsApp?</h3>
+                    <p className="text-white/60 text-sm mt-1">Nossa equipe entrará em contato para te dar o resultado da análise.</p>
+                  </div>
+                </div>
+                
+                <div className="relative mt-6">
+                  <input
+                    type="text"
+                    name="telefone"
+                    id="telefone"
+                    value={formData.telefone}
+                    onChange={handlePhoneChange}
+                    onKeyPress={(e) => e.key === 'Enter' && isStepValid() && nextStep()}
+                    placeholder="(00) 00000-0000"
+                    className={`peer w-full text-xl p-4 pt-8 pb-2 border-b-2 ${errors.telefone ? 'border-red-500' : 'border-white/20 focus:border-blue-400'} outline-none bg-transparent transition-colors text-white placeholder-transparent`}
+                  />
+                  <label
+                    htmlFor="telefone"
+                    className="absolute left-4 top-2 text-white/40 text-sm transition-all peer-placeholder-shown:text-xl peer-placeholder-shown:top-5 peer-focus:top-2 peer-focus:text-sm peer-focus:text-blue-400 cursor-text"
+                  >
+                    Seu WhatsApp
+                  </label>
+                </div>
+                {errors.telefone && (
+                  <p className="text-red-400 text-sm flex items-center gap-1 mt-2">
+                    <AlertCircle className="w-4 h-4" /> {errors.telefone}
+                  </p>
+                )}
+                
+                <div className="flex flex-col-reverse md:flex-row justify-between gap-4 mt-8">
+                  <button onClick={prevStep} className="text-white/60 hover:text-white flex items-center justify-center gap-2 py-3 px-6 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
+                    <ChevronLeft className="w-5 h-5" /> Voltar
+                  </button>
+                  <DynamicButton onClick={nextStep} disabled={!isStepValid()} className="w-full md:w-auto">
+                    Confirmar <ChevronRight className="w-5 h-5" />
+                  </DynamicButton>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 4 && (
+              <motion.div
+                key="step4"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
                 className="space-y-6"
               >
                 <div className="flex items-start gap-4 text-white mb-8">
@@ -185,7 +403,7 @@ export default function MultiStepForm() {
                     <Target className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <p className="text-blue-400 font-medium mb-2">Prazer em conhecê-lo(a), {formData.name.split(' ')[0]}!</p>
+                    <p className="text-blue-400 font-medium mb-2">Perfeito, {formData.name.split(' ')[0]}!</p>
                     <h3 className="text-2xl font-bold">O que você sonha conquistar ao colocar suas contas em dia?</h3>
                   </div>
                 </div>
@@ -218,9 +436,9 @@ export default function MultiStepForm() {
               </motion.div>
             )}
 
-            {step === 3 && (
+            {step === 5 && (
               <motion.div
-                key="step3"
+                key="step5"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -261,9 +479,9 @@ export default function MultiStepForm() {
               </motion.div>
             )}
 
-            {step === 4 && (
+            {step === 6 && (
               <motion.div
-                key="step4"
+                key="step6"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -304,9 +522,9 @@ export default function MultiStepForm() {
               </motion.div>
             )}
 
-            {step === 5 && (
+            {step === 7 && (
               <motion.div
-                key="step5"
+                key="step7"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -347,9 +565,9 @@ export default function MultiStepForm() {
               </motion.div>
             )}
 
-            {step === 6 && (
+            {step === 8 && (
               <motion.div
-                key="step6"
+                key="step8"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -392,9 +610,9 @@ export default function MultiStepForm() {
               </motion.div>
             )}
 
-            {step === 7 && (
+            {step === 9 && (
               <motion.div
-                key="step7"
+                key="step9"
                 initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
                 animate={{ opacity: 1, scale: 1, rotate: 0 }}
                 transition={{ type: "spring", bounce: 0.5 }}
@@ -431,3 +649,4 @@ export default function MultiStepForm() {
     </section>
   );
 }
+
