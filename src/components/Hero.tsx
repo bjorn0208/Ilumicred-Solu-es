@@ -69,7 +69,7 @@ export default function Hero() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <DynamicButton href="#consulta">
-              Consultar meu CPF agora
+              Consultar meu nome agora
             </DynamicButton>
           </motion.div>
 

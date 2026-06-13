@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data representing signed in clients",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Simulation": {
+      "title": "Simulation",
+      "description": "Answers from the multi-step simulator questionnaire",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "telefone": { "type": "string" },
+        "sonho": { "type": "string" },
+        "servico": { "type": "string" },
+        "negativado": { "type": "string" },
+        "valorDividas": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "telefone", "sonho", "servico", "negativado", "valorDividas", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Public and private profile information for registered clients"
+    },
+    "/users/{userId}/simulations/{simulationId}": {
+      "schema": "Simulation",
+      "description": "Simulator lead historical submissions for the user"
+    }
+  }
+}

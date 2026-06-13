@@ -74,11 +74,11 @@ export default function Chatbot() {
               setIsOpen(true);
               setShowNotification(false);
             }}
-            className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform overflow-hidden p-2"
+            className="w-16 h-16 bg-white rounded-full shadow-[0_8px_30px_rgba(21,93,252,0.4)] flex items-center justify-center transition-transform overflow-hidden p-2 border border-blue-500/10 hover:shadow-[0_8px_35px_rgba(21,93,252,0.6)] cursor-pointer"
           >
             <img src={logo} alt="Bot" className="w-full h-full object-contain" />
             {showNotification && (
-              <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-pulse"></span>
+              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
             )}
           </motion.button>
         </Magnetic>

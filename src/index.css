@@ -4,6 +4,15 @@
   * {
     cursor: none !important;
   }
+  
+  /* Prevent browser Autofill white backgrounds in input fields */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+    -webkit-text-fill-color: #ffffff !important;
+    transition: background-color 600000s ease-in-out 0s !important;
+  }
 }
 
 @layer utilities {

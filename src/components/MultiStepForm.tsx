@@ -7,12 +7,15 @@ import Magnetic from './Magnetic';
 import confetti from 'canvas-confetti';
 import { playSuccessSound } from '../utils/sound';
 import logo from '../logo.png';
+import { useAuth } from '../lib/AuthContext';
 
 export default function MultiStepForm() {
+  const { user, saveSimulation, signInWithGoogle } = useAuth();
   const [step, setStep] = useState(1);
+  const [hasSaved, setHasSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    cpf: '',
     telefone: '',
     sonho: '',
     servico: '',
@@ -22,38 +25,67 @@ export default function MultiStepForm() {
   });
   const [errors, setErrors] = useState({
     name: '',
-    cpf: '',
     telefone: ''
   });
 
+  // Load progress from localStorage on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('ilumicred_form_data');
+    const savedStep = localStorage.getItem('ilumicred_form_step');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setFormData(prev => ({ ...prev, ...parsed }));
+      } catch (e) {
+        console.error('Error loading saved progress:', e);
+      }
+    }
+    if (savedStep) {
+      const parsedStep = parseInt(savedStep, 10);
+      if (parsedStep >= 1 && parsedStep <= 6) {
+        setStep(parsedStep);
+      }
+    }
+  }, []);
+
+  // Save progress on changes, or clear it upon reaching the final stage
+  useEffect(() => {
+    if (step < 7) {
+      localStorage.setItem('ilumicred_form_data', JSON.stringify(formData));
+      localStorage.setItem('ilumicred_form_step', step.toString());
+    } else {
+      localStorage.removeItem('ilumicred_form_data');
+      localStorage.removeItem('ilumicred_form_step');
+    }
+  }, [formData, step]);
+
+  // Automatically persists simulation details to Firestore when user registers or is logged in
+  useEffect(() => {
+    if (step === 7 && user && !hasSaved && !isSaving) {
+      const doSave = async () => {
+        setIsSaving(true);
+        try {
+          await saveSimulation({
+            name: formData.name,
+            telefone: formData.telefone,
+            sonho: formData.sonho,
+            servico: formData.servico,
+            negativado: formData.negativado,
+            valorDividas: formData.valorDividas,
+          });
+          setHasSaved(true);
+        } catch (error) {
+          console.error("Failed to persist simulation answers to Firestore DB:", error);
+        } finally {
+          setIsSaving(false);
+        }
+      };
+      doSave();
+    }
+  }, [step, user, hasSaved, isSaving, formData, saveSimulation]);
+
   const validateName = (name: string) => {
     if (name.trim().length < 3) return 'O nome deve ter pelo menos 3 caracteres.';
-    return '';
-  };
-
-  const validateCPF = (cpf: string) => {
-    const cleanCPF = cpf.replace(/\D/g, '');
-    if (cleanCPF.length !== 11) return 'O CPF deve conter exatamente 11 dígitos.';
-    if (/^(\d)\1+$/.test(cleanCPF)) return 'CPF inválido (números repetidos).';
-    
-    let sum = 0;
-    let remainder;
-    
-    for (let i = 1; i <= 9; i++) {
-      sum += parseInt(cleanCPF.substring(i - 1, i)) * (11 - i);
-    }
-    remainder = (sum * 10) % 11;
-    if (remainder === 10 || remainder === 11) remainder = 0;
-    if (remainder !== parseInt(cleanCPF.substring(9, 10))) return 'CPF inválido.';
-    
-    sum = 0;
-    for (let i = 1; i <= 10; i++) {
-      sum += parseInt(cleanCPF.substring(i - 1, i)) * (12 - i);
-    }
-    remainder = (sum * 10) % 11;
-    if (remainder === 10 || remainder === 11) remainder = 0;
-    if (remainder !== parseInt(cleanCPF.substring(10, 11))) return 'CPF invalid.';
-    
     return '';
   };
 
@@ -71,29 +103,6 @@ export default function MultiStepForm() {
     
     if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  const handleCPFChange = (e: ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length > 11) value = value.slice(0, 11);
-    
-    let formatted = value;
-    if (value.length > 9) {
-      formatted = `${value.slice(0, 3)}.${value.slice(3, 6)}.${value.slice(6, 9)}-${value.slice(9)}`;
-    } else if (value.length > 6) {
-      formatted = `${value.slice(0, 3)}.${value.slice(3, 6)}.${value.slice(6)}`;
-    } else if (value.length > 3) {
-      formatted = `${value.slice(0, 3)}.${value.slice(3)}`;
-    }
-    
-    setFormData((prev) => ({ ...prev, cpf: formatted }));
-    
-    if (value.length === 11) {
-      const errorMsg = validateCPF(value);
-      setErrors((prev) => ({ ...prev, cpf: errorMsg }));
-    } else {
-      setErrors((prev) => ({ ...prev, cpf: '' }));
     }
   };
 
@@ -135,13 +144,6 @@ export default function MultiStepForm() {
         return;
       }
     } else if (step === 2) {
-      const cleanCPF = formData.cpf.replace(/\D/g, '');
-      currentError = validateCPF(cleanCPF);
-      if (currentError) {
-        setErrors((prev) => ({ ...prev, cpf: currentError }));
-        return;
-      }
-    } else if (step === 3) {
       const cleanPhone = formData.telefone.replace(/\D/g, '');
       currentError = validatePhone(cleanPhone);
       if (currentError) {
@@ -150,7 +152,12 @@ export default function MultiStepForm() {
       }
     }
 
-    if (step < 9) setStep(step + 1);
+    if (step === 6) {
+      handleFinalSubmit();
+      return;
+    }
+
+    if (step < 7) setStep(step + 1);
   };
 
   const prevStep = () => {
@@ -158,7 +165,7 @@ export default function MultiStepForm() {
   };
 
   const handleFinalSubmit = () => {
-    setStep(9);
+    setStep(7);
 
     playSuccessSound();
     confetti({
@@ -174,13 +181,11 @@ export default function MultiStepForm() {
     const message = `*Novo Contato via Site*
 
 *Nome:* ${formData.name}
-*CPF:* ${formData.cpf}
 *Telefone:* ${formData.telefone}
 *Sonho:* ${formData.sonho}
 *Serviço:* ${formData.servico}
 *Negativado:* ${formData.negativado}
-*Média das dívidas:* ${formData.valorDividas}
-*O que achou da proposta:* ${formData.proposta}`;
+*Média das dívidas:* ${formData.valorDividas}`;
     
     window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -188,18 +193,13 @@ export default function MultiStepForm() {
   const isStepValid = () => {
     if (step === 1) return formData.name.trim().length >= 3;
     if (step === 2) {
-      const cleanCPF = formData.cpf.replace(/\D/g, '');
-      return cleanCPF.length === 11 && !errors.cpf;
-    }
-    if (step === 3) {
       const cleanPhone = formData.telefone.replace(/\D/g, '');
       return (cleanPhone.length === 10 || cleanPhone.length === 11) && !errors.telefone;
     }
-    if (step === 4) return formData.sonho !== '';
-    if (step === 5) return formData.servico !== '';
-    if (step === 6) return formData.negativado !== '';
-    if (step === 7) return formData.valorDividas !== '';
-    if (step === 8) return formData.proposta !== '';
+    if (step === 3) return formData.sonho !== '';
+    if (step === 4) return formData.servico !== '';
+    if (step === 5) return formData.negativado !== '';
+    if (step === 6) return formData.valorDividas !== '';
     return true;
   };
 
@@ -220,12 +220,34 @@ export default function MultiStepForm() {
           {/* Progress Bar */}
           <div className="absolute top-0 left-0 w-full h-2 bg-white/5">
             <motion.div
-              className="h-full bg-blue-500"
-              initial={{ width: '12.5%' }}
-              animate={{ width: `${(step / 8) * 100}%` }}
+              className="h-full bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+              initial={{ width: '16.66%' }}
+              animate={{ width: `${(step / 6) * 100}%` }}
               transition={{ duration: 0.5 }}
             />
           </div>
+
+          {/* Detailed visual step tracker inside the form */}
+          {step < 7 && (
+            <div className="mb-8 select-none">
+              <div className="flex justify-between items-center mb-2.5">
+                <span className="text-xs font-semibold tracking-wider text-blue-400 bg-blue-500/10 py-1 px-3 rounded-full border border-blue-500/20">
+                  Etapa {step} de 6
+                </span>
+                <span className="text-xs font-semibold text-white/50">
+                  {Math.round(((step - 1) / 6) * 100)}% concluído
+                </span>
+              </div>
+              <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-blue-600 to-indigo-500"
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${((step - 1) / 6) * 100}%` }}
+                  transition={{ duration: 0.4 }}
+                />
+              </div>
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -256,11 +278,24 @@ export default function MultiStepForm() {
                     onChange={handleInputChange}
                     onKeyPress={(e) => e.key === 'Enter' && isStepValid() && nextStep()}
                     placeholder="Seu nome completo"
-                    className={`peer w-full text-xl p-4 pt-8 pb-2 border-b-2 ${errors.name ? 'border-red-500' : 'border-white/20 focus:border-blue-400'} outline-none bg-transparent transition-colors text-white placeholder-transparent`}
+                    autoComplete="off"
+                    className={`peer w-full text-xl p-4 pt-8 pb-2 border-b-2 ${
+                      errors.name 
+                        ? 'border-red-500 focus:border-red-500' 
+                        : (formData.name.trim().length >= 3 
+                            ? 'border-green-500 focus:border-green-500' 
+                            : 'border-white/20 focus:border-blue-400')
+                    } outline-none bg-transparent transition-colors text-white placeholder-transparent`}
                   />
                   <label
                     htmlFor="name"
-                    className="absolute left-4 top-2 text-white/40 text-sm transition-all peer-placeholder-shown:text-xl peer-placeholder-shown:top-5 peer-focus:top-2 peer-focus:text-sm peer-focus:text-blue-400 cursor-text"
+                    className={`absolute left-4 top-2 text-sm transition-all peer-placeholder-shown:text-xl peer-placeholder-shown:top-5 peer-focus:top-2 peer-focus:text-sm cursor-text ${
+                      errors.name 
+                        ? 'text-red-400 peer-focus:text-red-400' 
+                        : (formData.name.trim().length >= 3 
+                            ? 'text-green-500 peer-focus:text-green-500' 
+                            : 'text-white/40 peer-focus:text-blue-400')
+                    }`}
                   >
                     Seu nome
                   </label>
@@ -293,63 +328,10 @@ export default function MultiStepForm() {
               >
                 <div className="flex items-start gap-4 text-white">
                   <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shrink-0 mt-1">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-blue-400 font-medium mb-2">Muito obrigado, {formData.name.split(' ')[0]}!</p>
-                    <h3 className="text-2xl font-bold">Informe o seu CPF para realizarmos a consulta:</h3>
-                    <p className="text-white/60 text-sm mt-1">Fique tranquilo, seus dados estão protegidos sob sigilo criptografado.</p>
-                  </div>
-                </div>
-                
-                <div className="relative mt-6">
-                  <input
-                    type="text"
-                    name="cpf"
-                    id="cpf"
-                    value={formData.cpf}
-                    onChange={handleCPFChange}
-                    onKeyPress={(e) => e.key === 'Enter' && isStepValid() && nextStep()}
-                    placeholder="000.000.000-00"
-                    className={`peer w-full text-xl p-4 pt-8 pb-2 border-b-2 ${errors.cpf ? 'border-red-500' : 'border-white/20 focus:border-blue-400'} outline-none bg-transparent transition-colors text-white placeholder-transparent`}
-                  />
-                  <label
-                    htmlFor="cpf"
-                    className="absolute left-4 top-2 text-white/40 text-sm transition-all peer-placeholder-shown:text-xl peer-placeholder-shown:top-5 peer-focus:top-2 peer-focus:text-sm peer-focus:text-blue-400 cursor-text"
-                  >
-                    Seu CPF
-                  </label>
-                </div>
-                {errors.cpf && (
-                  <p className="text-red-400 text-sm flex items-center gap-1 mt-2">
-                    <AlertCircle className="w-4 h-4" /> {errors.cpf}
-                  </p>
-                )}
-                
-                <div className="flex flex-col-reverse md:flex-row justify-between gap-4 mt-8">
-                  <button onClick={prevStep} className="text-white/60 hover:text-white flex items-center justify-center gap-2 py-3 px-6 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
-                    <ChevronLeft className="w-5 h-5" /> Voltar
-                  </button>
-                  <DynamicButton onClick={nextStep} disabled={!isStepValid()} className="w-full md:w-auto">
-                    Confirmar <ChevronRight className="w-5 h-5" />
-                  </DynamicButton>
-                </div>
-              </motion.div>
-            )}
-
-            {step === 3 && (
-              <motion.div
-                key="step3"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8"
-              >
-                <div className="flex items-start gap-4 text-white">
-                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shrink-0 mt-1">
                     <Phone className="w-6 h-6 text-white" />
                   </div>
                   <div>
+                    <p className="text-blue-400 font-medium mb-2">Muito obrigado, {formData.name.split(' ')[0]}!</p>
                     <h3 className="text-2xl font-bold">Qual é o seu melhor Telefone / WhatsApp?</h3>
                     <p className="text-white/60 text-sm mt-1">Nossa equipe entrará em contato para te dar o resultado da análise.</p>
                   </div>
@@ -364,11 +346,24 @@ export default function MultiStepForm() {
                     onChange={handlePhoneChange}
                     onKeyPress={(e) => e.key === 'Enter' && isStepValid() && nextStep()}
                     placeholder="(00) 00000-0000"
-                    className={`peer w-full text-xl p-4 pt-8 pb-2 border-b-2 ${errors.telefone ? 'border-red-500' : 'border-white/20 focus:border-blue-400'} outline-none bg-transparent transition-colors text-white placeholder-transparent`}
+                    autoComplete="off"
+                    className={`peer w-full text-xl p-4 pt-8 pb-2 border-b-2 ${
+                      errors.telefone 
+                        ? 'border-red-500 focus:border-red-500' 
+                        : (((formData.telefone.replace(/\D/g, '').length === 10 || formData.telefone.replace(/\D/g, '').length === 11) && !errors.telefone)
+                            ? 'border-green-500 focus:border-green-500' 
+                            : 'border-white/20 focus:border-blue-400')
+                    } outline-none bg-transparent transition-colors text-white placeholder-transparent`}
                   />
                   <label
                     htmlFor="telefone"
-                    className="absolute left-4 top-2 text-white/40 text-sm transition-all peer-placeholder-shown:text-xl peer-placeholder-shown:top-5 peer-focus:top-2 peer-focus:text-sm peer-focus:text-blue-400 cursor-text"
+                    className={`absolute left-4 top-2 text-sm transition-all peer-placeholder-shown:text-xl peer-placeholder-shown:top-5 peer-focus:top-2 peer-focus:text-sm cursor-text ${
+                      errors.telefone 
+                        ? 'text-red-400 peer-focus:text-red-400' 
+                        : (((formData.telefone.replace(/\D/g, '').length === 10 || formData.telefone.replace(/\D/g, '').length === 11) && !errors.telefone)
+                            ? 'text-green-400 peer-focus:text-green-400' 
+                            : 'text-white/40 peer-focus:text-blue-400')
+                    }`}
                   >
                     Seu WhatsApp
                   </label>
@@ -390,9 +385,9 @@ export default function MultiStepForm() {
               </motion.div>
             )}
 
-            {step === 4 && (
+            {step === 3 && (
               <motion.div
-                key="step4"
+                key="step3"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -436,9 +431,9 @@ export default function MultiStepForm() {
               </motion.div>
             )}
 
-            {step === 5 && (
+            {step === 4 && (
               <motion.div
-                key="step5"
+                key="step4"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -479,9 +474,9 @@ export default function MultiStepForm() {
               </motion.div>
             )}
 
-            {step === 6 && (
+            {step === 5 && (
               <motion.div
-                key="step6"
+                key="step5"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -522,9 +517,9 @@ export default function MultiStepForm() {
               </motion.div>
             )}
 
-            {step === 7 && (
+            {step === 6 && (
               <motion.div
-                key="step7"
+                key="step6"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -559,60 +554,15 @@ export default function MultiStepForm() {
                     <ChevronLeft className="w-5 h-5" /> Voltar
                   </button>
                   <DynamicButton onClick={nextStep} disabled={!isStepValid()} className="w-full md:w-auto">
-                    Confirmar <ChevronRight className="w-5 h-5" />
-                  </DynamicButton>
-                </div>
-              </motion.div>
-            )}
-
-            {step === 8 && (
-              <motion.div
-                key="step8"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                <div className="flex items-start gap-4 text-white mb-8">
-                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shrink-0 mt-1">
-                    <MessageCircle className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold leading-tight">
-                    O que você acha da opção de pagar apenas R$ 147,00, parcelas essas que cabem no seu bolso?
-                  </h3>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-4">
-                  {['Acho incrível', 'Parece bom demais para ser verdade'].map((option) => (
-                    <Magnetic key={option} strength={0.1}>
-                      <button
-                        onClick={() => handleOptionSelect('proposta', option)}
-                        className={`w-full p-4 rounded-xl border-2 text-left text-lg font-medium transition-all ${
-                          formData.proposta === option 
-                            ? 'border-blue-500 bg-blue-500/20 text-white' 
-                            : 'border-white/10 hover:border-white/30 text-white/80 hover:bg-white/5'
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    </Magnetic>
-                  ))}
-                </div>
-
-                <div className="flex flex-col-reverse md:flex-row justify-between gap-4 mt-8">
-                  <button onClick={prevStep} className="text-white/60 hover:text-white flex items-center justify-center gap-2 py-3 px-6 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
-                    <ChevronLeft className="w-5 h-5" /> Voltar
-                  </button>
-                  <DynamicButton onClick={handleFinalSubmit} disabled={!isStepValid()} className="w-full md:w-auto">
                     Finalizar Análise <CheckCircle2 className="w-5 h-5" />
                   </DynamicButton>
                 </div>
               </motion.div>
             )}
 
-            {step === 9 && (
+            {step === 7 && (
               <motion.div
-                key="step9"
+                key="step7"
                 initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
                 animate={{ opacity: 1, scale: 1, rotate: 0 }}
                 transition={{ type: "spring", bounce: 0.5 }}
@@ -627,10 +577,8 @@ export default function MultiStepForm() {
                   <CheckCircle2 className="w-12 h-12 text-blue-500" />
                 </motion.div>
                 
-                <h3 className="text-2xl font-bold text-white">
-                  {formData.proposta === 'Acho incrível' 
-                    ? 'Muito bem, clique no botão abaixo para falar com um atendente. Muito obrigado pela preferência.' 
-                    : 'Pois é, muitos clientes pensam assim no início, mas após uma conversa com nosso atendente, você vai sanar todas as suas dúvidas. Vamos lá?'}
+                <h3 className="text-2xl font-bold text-white max-w-xl mx-auto leading-relaxed">
+                  Sua simulação foi gerada com sucesso! Clique no botão abaixo para receber a sua análise completa e gratuita de forma personalizada e direta no seu WhatsApp.
                 </h3>
                 
                 <div className="mt-8 p-6 bg-white/5 rounded-xl border border-white/10 inline-block w-full max-w-sm">
@@ -640,6 +588,36 @@ export default function MultiStepForm() {
                   >
                     Quero limpar meu nome
                   </DynamicButton>
+                </div>
+
+                <div className="max-w-md mx-auto pt-4">
+                  {!user ? (
+                    <div className="mt-6 p-6 bg-blue-950/20 rounded-2xl border border-blue-500/20 space-y-4 shadow-lg backdrop-blur-md">
+                      <p className="text-sm text-blue-200">
+                        Quer salvar essa simulação em seu histórico e sincronizar com nosso banco de dados? Acesse com sua conta Google.
+                      </p>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await signInWithGoogle();
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        }}
+                        className="w-full flex items-center justify-center gap-3 py-3 px-6 rounded-xl bg-white text-black font-semibold hover:bg-white/95 active:scale-[0.98] transition-all cursor-pointer shadow-md"
+                      >
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 select-none pointer-events-none" />
+                        Acessar e Salvar no Google
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-6 p-4 bg-green-500/10 rounded-xl border border-green-500/20 flex flex-col items-center gap-1">
+                      <span className="text-sm text-green-400 font-semibold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4" /> Simulação salva na sua conta!
+                      </span>
+                      <span className="text-xs text-white/50">{user.email}</span>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

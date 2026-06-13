@@ -1,87 +1,83 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck, Lock } from 'lucide-react';
+import { ShieldCheck, Award } from 'lucide-react';
 
 export default function Guarantee() {
   return (
     <section className="py-24 bg-transparent text-white relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex flex-col lg:flex-row items-center gap-12">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="lg:w-1/2"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 mb-6">
-              <ShieldCheck className="w-5 h-5 text-amber-400" />
-              <span className="text-sm font-medium">Garantia Incondicional</span>
-            </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 leading-tight">
-              Risco Zero para você e para o seu bolso.
-            </h2>
-            <p className="text-lg text-white/80 mb-8">
-              Confiamos tanto em nosso método que oferecemos uma garantia de 6 meses. Se o seu nome voltar a ser negativado pelas mesmas dívidas nesse período, nós refazemos o serviço sem nenhum custo adicional.
-            </p>
-            
-            <ul className="space-y-4">
-              {[
-                'Processo 100% amparado por lei',
-                'Sigilo absoluto dos seus dados',
-                'Contrato claro e sem letras miúdas',
-              ].map((item, i) => (
-                <li key={i} className="flex items-center gap-3">
-                  <CheckIcon className="w-6 h-6 text-amber-400 shrink-0" />
-                  <span className="font-medium">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        {/* Certificate Wrapper Card with smooth side fade-in/up entrance */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="relative bg-gradient-to-br from-blue-950/40 via-slate-900/35 to-indigo-950/45 backdrop-blur-2xl rounded-3xl p-8 md:p-12 border border-amber-500/20 shadow-[0_30px_60px_rgba(21,93,252,0.1)] overflow-hidden text-center max-w-2xl mx-auto"
+        >
+          {/* Certificate Fine Decorative Inner Border */}
+          <div className="absolute inset-4 rounded-2xl border border-amber-500/10 pointer-events-none" />
+          
+          {/* Decorative Corner Ornaments */}
+          <div className="absolute top-6 left-6 w-4 h-4 border-t-2 border-l-2 border-amber-500/40" />
+          <div className="absolute top-6 right-6 w-4 h-4 border-t-2 border-r-2 border-amber-500/40" />
+          <div className="absolute bottom-6 left-6 w-4 h-4 border-b-2 border-l-2 border-amber-500/40" />
+          <div className="absolute bottom-6 right-6 w-4 h-4 border-b-2 border-r-2 border-amber-500/40" />
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="lg:w-1/2 w-full max-w-md mx-auto"
-          >
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl text-white text-center relative">
-              <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-amber-400 rounded-full flex items-center justify-center shadow-lg border-4 border-black">
-                <Lock className="w-5 h-5 text-black" />
-              </div>
-              
-              <h3 className="text-2xl font-bold mb-2 mt-4">Certificado de Segurança</h3>
-              <p className="text-white/60 text-sm mb-6">
-                Seus dados são criptografados e tratados de acordo com a LGPD (Lei Geral de Proteção de Dados).
-              </p>
-              
-              <div className="p-4 bg-black/30 rounded-xl border border-white/5">
-                <p className="font-bold text-blue-400">
-                  Garantia de 6 Meses
-                </p>
-                <p className="text-sm text-white/70 mt-1">
-                  Proteção estendida após a limpeza do seu nome.
-                </p>
-              </div>
+          {/* Glowing background behind stamp */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-amber-500/5 rounded-full filter blur-3xl pointer-events-none" />
+
+          {/* Guarantee Header Badge */}
+          <div className="relative z-10 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/20 mb-6">
+            <ShieldCheck className="w-4 h-4" />
+            Compromisso Ilumicred
+          </div>
+
+          {/* Certificate Main Title */}
+          <h2 className="relative z-10 text-2xl md:text-3xl font-bold text-white tracking-tight leading-tight mb-2 uppercase font-sans">
+            Certificado de Risco Zero
+          </h2>
+          <p className="text-xs uppercase tracking-widest text-amber-500/70 font-mono mb-6">
+            GARANTIA DE SATISFAÇÃO E PROTEÇÃO JURÍDICA
+          </p>
+
+          {/* Refined Seal Stamp */}
+          <div className="relative z-10 flex justify-center mb-8">
+            <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 shadow-[0_0_30px_rgba(245,158,11,0.4)] border-4 border-blue-950/80">
+              <Award className="w-10 h-10 text-amber-950 stroke-[1.5]" />
+              {/* Spinning Seal Teeth simulation or border dots */}
+              <div className="absolute inset-1 rounded-full border border-dashed border-amber-950/30" />
             </div>
-          </motion.div>
-        </div>
+          </div>
+
+          {/* Summarized, Highly Authoritative Copy */}
+          <div className="relative z-10 max-w-md mx-auto space-y-4 mb-8">
+            <p className="text-base md:text-lg text-white/95 leading-relaxed font-semibold">
+              Risco zero para o seu bolso e para você.
+            </p>
+            <p className="text-sm text-white/70 leading-relaxed font-light">
+              Confiamos integralmente em nosso método legal. Garantimos o acompanhamento do seu CPF por <strong>6 meses completos</strong>. Caso os mesmos apontamentos contestados e removidos retornem de forma indevida nesse período, nós refazemos todo o procedimento sem qualquer custo adicional para você.
+            </p>
+          </div>
+
+          {/* Bottom Security Seals & Compliance Badges */}
+          <div className="relative z-10 grid grid-cols-3 gap-2 pt-6 border-t border-white/5 max-w-md mx-auto text-[9px] uppercase font-mono tracking-wider text-white/40">
+            <div className="flex flex-col items-center gap-1">
+              <span className="font-bold text-amber-500">100% REGULAR</span>
+              <span>De Acordo com o CDC</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 border-x border-white/5 px-2">
+              <span className="font-bold text-amber-400">DADOS SEGUROS</span>
+              <span>Proteção LGPD</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="font-bold text-amber-500">SUPORTE TOTAL</span>
+              <span>6 Meses de Resguardo</span>
+            </div>
+          </div>
+
+        </motion.div>
       </div>
     </section>
-  );
-}
-
-function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
   );
 }

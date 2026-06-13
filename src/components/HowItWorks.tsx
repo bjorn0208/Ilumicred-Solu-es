@@ -1,92 +1,121 @@
 import { motion } from 'motion/react';
-import { Search, FileText, CheckCircle, RefreshCcw, TrendingUp } from 'lucide-react';
 import RevealTitle from './RevealTitle';
-import AnimatedIcon from './AnimatedIcon';
-import SpotlightCard from './SpotlightCard';
 
 export default function HowItWorks() {
   const steps = [
     {
-      icon: <Search className="w-6 h-6 text-white" />,
-      title: 'Análise do CPF',
-      description: 'Consultamos seu CPF para identificar todos os apontamentos indevidos.',
+      number: '01',
+      title: 'Diagnóstico do CPF',
+      subtitle: 'Identificação de brechas',
+      description: 'Análise aprofundada do seu CPF nos birôs de crédito para mapear falhas administrativas e ausência de notificações obrigatórias por lei.',
     },
     {
-      icon: <FileText className="w-6 h-6 text-white" />,
-      title: 'Encaminhamento Legal',
-      description: 'Nossos especialistas preparam a documentação baseada no CDC.',
+      number: '02',
+      title: 'Fundamentação Legal',
+      subtitle: 'Defesa pautada no CDC',
+      description: 'Elaboração de uma contestação jurídica irrefutável com base nas infrações cometidas no ato de registro de sua negativação.',
     },
     {
-      icon: <CheckCircle className="w-6 h-6 text-white" />,
-      title: 'Baixa das Negativações',
-      description: 'Solicitamos a remoção dos registros nos órgãos de proteção.',
+      number: '03',
+      title: 'Retirada de Restrições',
+      subtitle: 'Exclusão dos apontamentos',
+      description: 'Notificação e cobrança jurídica para a suspensão imediata e baixa das anotações no Serasa, SPC Brasil e Boa Vista SCPC.',
     },
     {
-      icon: <RefreshCcw className="w-6 h-6 text-white" />,
-      title: 'Atualização nos Órgãos',
-      description: 'Acompanhamos a limpeza do seu nome em todos os sistemas.',
+      number: '04',
+      title: 'Auditoria de Sincronização',
+      subtitle: 'Garantia de limpeza integral',
+      description: 'Varredura final e auditoria completa em todas as ramificações de registro para garantir que seu CPF fique 100% livre de resquícios.',
     },
     {
-      icon: <TrendingUp className="w-6 h-6 text-white" />,
-      title: 'Recuperação do Score',
-      description: 'Com o nome limpo, seu score volta a subir naturalmente.',
+      number: '05',
+      title: 'Restauração do Score',
+      subtitle: 'Retorno da confiança do mercado',
+      description: 'Removidos os apontamentos do passado, os algoritmos atualizam sua nota e o seu Score volta a subir de maneira consistente.',
     },
   ];
 
   return (
     <section id="como-funciona" className="py-24 bg-transparent relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <RevealTitle className="text-3xl md:text-4xl font-bold text-white mb-4">
+        <div className="text-center mb-20">
+          <RevealTitle className="text-3xl md:text-5xl font-bold text-white mb-6">
             Como funciona o processo?
           </RevealTitle>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-lg text-white/70 max-w-2xl mx-auto"
+            transition={{ delay: 0.1, duration: 0.6 }}
+            className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-light"
           >
-            Um método transparente, legal e focado em resultados rápidos.
+            Um método transparente, legalizado e focado em restabelecer a sua dignidade e score financeiro.
           </motion.p>
         </div>
 
-        <div className="relative max-w-4xl mx-auto">
-          {/* Vertical Line */}
-          <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-white/10 transform -translate-x-1/2 hidden md:block" />
+        <div className="max-w-4xl mx-auto">
+          <div className="space-y-10 relative">
+            {/* Elegant Background Connecting Line (vertical visual guide) */}
+            <div className="absolute left-6 md:left-1/2 top-4 bottom-4 w-px bg-gradient-to-b from-blue-500/40 via-white/10 to-transparent transform -translate-x-1/2 hidden md:block" />
 
-          <div className="space-y-12">
-            {steps.map((step, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className={`flex flex-col md:flex-row items-center gap-8 ${
-                  index % 2 === 0 ? 'md:flex-row-reverse' : ''
-                }`}
-              >
-                {/* Content */}
-                <div className={`w-full md:w-1/2 ${index % 2 === 0 ? 'md:text-left' : 'md:text-right'} relative z-10`}>
-                  <div>
-                    <h3 className="text-xl font-bold text-blue-400 mb-2">{step.title}</h3>
-                    <p className="text-white/70">{step.description}</p>
+            {steps.map((step, index) => {
+              const isEven = index % 2 === 0;
+              return (
+                <motion.div
+                  key={index}
+                  // Soft elegant side entry animation with high-speed smooth bezier easing
+                  initial={{ opacity: 0, x: isEven ? -60 : 60, y: 10 }}
+                  whileInView={{ opacity: 1, x: 0, y: 0 }}
+                  viewport={{ once: true, margin: "-120px" }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: index * 0.05 }}
+                  className={`flex flex-col md:flex-row items-stretch gap-6 ${
+                    isEven ? '' : 'md:flex-row-reverse'
+                  }`}
+                >
+                  {/* Card wrapper */}
+                  <div className="w-full md:w-[47%]">
+                    <div className="group relative h-full bg-gradient-to-br from-white/[0.03] to-white/[0.01] hover:from-white/[0.06] hover:to-white/[0.02] p-6 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all duration-500 shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:shadow-[0_15px_40px_rgba(59,130,246,0.1)] flex flex-col justify-between overflow-hidden">
+                      {/* Left glowing marker indicator */}
+                      <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-blue-500 to-indigo-600 rounded-l-2xl opacity-80 group-hover:opacity-100 transition-opacity" />
+                      
+                      {/* Floating Large background elegant watermark numbers */}
+                      <span className="absolute right-4 bottom-1 text-8xl font-mono font-bold text-white/[0.02] group-hover:text-white/[0.05] select-none tracking-tighter transition-all duration-500 transform group-hover:scale-105">
+                        {step.number}
+                      </span>
+
+                      <div className="relative z-10 space-y-4">
+                        <div className="flex items-center gap-3">
+                          {/* Sleek Badge index */}
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/30 text-blue-400 font-mono font-bold text-sm">
+                            {step.number}
+                          </div>
+                          <div>
+                            <span className="text-xs uppercase font-mono tracking-wider text-blue-400 font-semibold">{step.subtitle}</span>
+                            <h3 className="text-xl font-bold text-white tracking-tight group-hover:text-blue-300 transition-colors">
+                              {step.title}
+                            </h3>
+                          </div>
+                        </div>
+
+                        <p className="text-white/70 text-sm md:text-base leading-relaxed font-normal">
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Icon/Node */}
-                <AnimatedIcon className="relative flex items-center justify-center w-16 h-16 rounded-full bg-[#155dfc] shadow-lg z-10 shrink-0 border-4 border-black">
-                  {step.icon}
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-400 text-black rounded-full flex items-center justify-center text-xs font-bold">
-                    {index + 1}
+                  {/* Visual spacer element to align timelines nicely on desktop */}
+                  <div className="hidden md:block md:w-[6%] relative">
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-slate-950 border-2 border-blue-500 flex items-center justify-center z-20">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping absolute" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    </div>
                   </div>
-                </AnimatedIcon>
-
-                {/* Empty space for alignment */}
-                <div className="w-full md:w-1/2 hidden md:block" />
-              </motion.div>
-            ))}
+                  
+                  <div className="hidden md:block md:w-[47%]" />
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </div>
